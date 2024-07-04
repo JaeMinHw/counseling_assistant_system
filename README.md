@@ -3,8 +3,9 @@
 
 
 ![System configuration diagram](system.png)
+<div align="center">
 시스템 구성도
-
+</div>
 ![plan](plan.png)
 <div align="center">
 계획
