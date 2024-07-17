@@ -1,4 +1,3 @@
-# GSR_main.py
 import matplotlib.pyplot as plt
 from ArduinoManager import ArduinoManager
 
