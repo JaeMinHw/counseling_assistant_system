@@ -30,16 +30,28 @@ class ArduinoManager:
     def get_pin(self, pin_number, mode='i'):
         key = (pin_number, mode)
         if key not in self.pins:
-            self.pins[key] = self.board.get_pin(f'a:{pin_number}:{mode}')
+            if mode == 'a':  # 아날로그 모드를 위한 설정
+                self.pins[key] = self.board.get_pin(f'a:{pin_number}:{mode}')
+            else:  # 디지털 모드를 위한 설정
+                self.pins[key] = self.board.get_pin(f'd:{pin_number}:{mode}')
         return self.pins[key]
 
-    def read_sensor(self, pin_number):
-        pin = self.get_pin(pin_number)
-        if not pin:
-            raise ValueError("핀 설정이 잘못되었습니다.")
-        time.sleep(0.1)  # 핀 초기화와 데이터 안정화를 위한 지연
-        value = pin.read()
-        if value is None:
-            print(f"핀 {pin_number}에서 데이터를 읽지 못했습니다.")
-            return None
-        return value * 3.3
+
+    def read_sensor(self, pin_number, mode='a'):  # 아날로그 모드가 기본값
+        pin = self.get_pin(pin_number, mode)
+        if pin is not None:
+            time.sleep(0.1)  # 핀 초기화와 데이터 안정화를 위한 지연
+            value = pin.read()
+            if value is None:
+                print(f"핀 {pin_number}에서 데이터를 읽지 못했습니다.")
+                return None
+            return value * 3.3  # 센서 값 조정
+        else:
+            raise Exception("핀 설정이 잘못되었습니다.")
+    
+    def read_digital(self, pin_number):
+        pin = self.get_pin(pin_number, 'i')
+        if pin is not None:
+            return pin.read()
+        else:
+            raise Exception("핀 설정이 잘못되었습니다.")
