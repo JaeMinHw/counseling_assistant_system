@@ -17,6 +17,7 @@ def disconnect():
 @sio.event
 def sensor_start():
     print("sensor_start")  # 서버로부터 받은 메시지 출력
+    # 그러면 이제 센서 측정하는 코드 실행
 
 sio.connect('http://192.168.0.72:5000')
 
