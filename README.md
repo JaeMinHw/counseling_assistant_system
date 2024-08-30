@@ -11,3 +11,9 @@
 <div align="center">
 계획
 </div>
+
+
+![plan](시스템 flowchart.png)
+<div align="center">
+System flow chart
+</div>
