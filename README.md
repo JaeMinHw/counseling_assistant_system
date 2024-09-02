@@ -13,7 +13,7 @@
 </div>
 
 
-![plan](시스템 flowchart.png)
+![flowchart](flowchart.png)
 <div align="center">
 System flow chart
 </div>
