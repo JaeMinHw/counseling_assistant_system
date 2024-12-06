@@ -31,9 +31,11 @@
 import socketio
 import random
 import time
-
+from threading import Event, Thread
 
 sio = socketio.Client()
+stop_event = Event()
+
 
 @sio.event
 def connect():
@@ -51,7 +53,7 @@ def connection_accepted(data):
     # sio.emit('sensor_start')  # 서버로부터 연결 수락 메시지를 받으면 센서 시작
 
 
-def start_sending_data():
+def start_sending_data(room):
     while True:
         # 임의의 데이터 생성 (센서 데이터)
         data1 = random.uniform(0, 100)
@@ -60,17 +62,17 @@ def start_sending_data():
         current_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
         # 서버로 데이터 전송
-        sio.emit('sensor_data', {'data1': data1, 'data2': data2, 'data3': data3, 'time': current_time})
-        print(f"Sent data: {data1}, {data2}, {data3} at {current_time}")
+        sio.emit('sensor_data', {'room': room,'data1': data1, 'data2': data2, 'data3': data3, 'time': current_time})
+        print(f"Sent data: {room}, {data1}, {data2}, {data3} at {current_time}")
         
         time.sleep(0.1)  # 0.1초마다 데이터 전송
 
 
 @sio.event
-def sensor_start(data):
-    print(f"sensor_start: {data}")  # 서버로부터 받은 메시지 출력
+def sensor_start(room):
+    print(f"sensor_start: {room}")  # 서버로부터 받은 메시지 출력
     # 여기서 센서 측정하는 코드를 실행
-
+    start_sending_data(room)
     # 데이터 임의로 생성 후 stop 신호가 오기 전까지 계속 서버로 전송
 
 
