@@ -28,19 +28,20 @@
 #     sio.disconnect()
 
 
+
+
 import socketio
 import random
 import time
-from threading import Event, Thread
+from threading import Thread, Event
 
 sio = socketio.Client()
-stop_event = Event()
+stop_events = {}  # 각 room별로 stop 이벤트 관리
 
 
 @sio.event
 def connect():
     print("I'm connected!")
-    # 환자 로그인 이벤트 서버로 전송
     sio.emit('patient_login', {'patient_id': 'woals99', 'counselor_id': 'counselor_1'})
 
 @sio.event
@@ -50,40 +51,71 @@ def disconnect():
 @sio.event
 def connection_accepted(data):
     print(f"Connection accepted: {data}")
-    # sio.emit('sensor_start')  # 서버로부터 연결 수락 메시지를 받으면 센서 시작
 
+
+
+# 센서 데이터 읽기 함수 (실제 센서 함수로 교체)
+def read_all_sensors():
+    """
+    모든 센서 데이터를 동시에 읽음.
+    """
+    sensor1_data = random.uniform(0, 100)  # 센서1 데이터 읽기
+    sensor2_data = random.uniform(0, 100)  # 센서2 데이터 읽기
+    sensor3_data = random.uniform(0, 100)  # 센서3 데이터 읽기
+    return sensor1_data, sensor2_data, sensor3_data
 
 def start_sending_data(room):
-    while True:
-        # 임의의 데이터 생성 (센서 데이터)
-        data1 = random.uniform(0, 100)
-        data2 = random.uniform(0, 100)
-        data3 = random.uniform(0, 100)
+    stop_event = stop_events[room]
+    while not stop_event.is_set():  # stop_event가 설정되기 전까지 실행
+
+        data1, data2, data3 = read_all_sensors()
+        
         current_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
-        # 서버로 데이터 전송
-        sio.emit('sensor_data', {'room': room,'data1': data1, 'data2': data2, 'data3': data3, 'time': current_time})
-        print(f"Sent data: {room}, {data1}, {data2}, {data3} at {current_time}")
-        
-        time.sleep(0.1)  # 0.1초마다 데이터 전송
+        sio.emit('sensor_data', {
+            'room': room,
+            'data1': data1,
+            'data2': data2,
+            'data3': data3,
+            'time': current_time
+        })
+        print(f"Sent data: Room {room}, {data1}, {data2}, {data3} at {current_time}")
+        time.sleep(1/60)  # 0.1초마다 데이터 전송
 
-
-@sio.event
-def sensor_start(room):
-    print(f"sensor_start: {room}")  # 서버로부터 받은 메시지 출력
-    # 여기서 센서 측정하는 코드를 실행
-    start_sending_data(room)
-    # 데이터 임의로 생성 후 stop 신호가 오기 전까지 계속 서버로 전송
-
+    print(f"Stopped sending data for room {room}")
 
 @sio.event
-def stop():
-    pass
+def sensor_start(data):
+    room =data  # 서버로부터 room 정보 추출
+    print(f"Starting sensor for room {room}")
+    if room not in stop_events:
+        stop_events[room] = Event()
+        thread = Thread(target=start_sending_data, args=(room,))
+        thread.daemon = True
+        thread.start()
+    else:
+        print(f"Sensor already running for room {room}")
+
+@sio.event
+def stop(data):
+    room = data  # 서버로부터 room 정보 추출
+    if not room:
+        print("No room specified in stop event")
+        return
+
+    print(f"Stopping sensor for room {room}")
+    if room in stop_events:
+        stop_events[room].set()  # stop_event를 설정하여 루프 종료
+        del stop_events[room]  # stop_event 제거
+        print(f"Sensor stopped for room {room}")
+    else:
+        print(f"No active sensor for room {room}")
 
 sio.connect('http://127.0.0.1:5000', transports=['websocket'])
 
 try:
-    # 클라이언트가 계속 실행되도록 합니다.
     sio.wait()
 except KeyboardInterrupt:
+    for event in stop_events.values():
+        event.set()  # 모든 stop_event 설정
     sio.disconnect()
